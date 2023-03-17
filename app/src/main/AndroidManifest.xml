@@ -15,6 +15,11 @@
         android:theme="@style/Theme.ConsumoApi"
         tools:targetApi="31">
 
+        <provider
+            android:name=".ExchangeRateContentProvider"
+            android:authorities="com.example.myapp.ExchangeRateContentProvider"
+            android:exported="true" />
+
 
         <activity
             android:name=".MainActivity"

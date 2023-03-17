@@ -5,8 +5,8 @@ import android.util.Log
 import androidx.room.Room
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import com.example.consumoapi.AppDatabase
-import com.example.consumoapi.ExchangeRate
+import com.example.consumoapi.room.AppDatabase
+import com.example.consumoapi.room.ExchangeRate
 import com.example.consumoapi.api.ExchangeRateApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -29,8 +29,13 @@ class SyncWorker(context: Context, params: WorkerParameters) : Worker(context, p
 
         GlobalScope.launch(Dispatchers.IO) {
             val exchangeRate = exchangeRateApi.getExchangeRates("USD")
-            db.exchangeRateDao().insertExchangeRate(ExchangeRate("USD", exchangeRate.conversionRates["EUR"] ?: 0.0))
-            Log.d("ExchangeRate", "Exchange rate saved to database")
+            db.exchangeRateDao().insertExchangeRate(ExchangeRate(
+                id = 0, // Al ser auto-generado, se inicializa en 0
+                code = "USD",
+                rate = exchangeRate.conversionRates["EUR"] ?: 0.0
+            ))
+
+            Log.d("ExchangeRate", "Tasa de cambio guardada en la base de datos")
         }
         return Result.success()
     }
