@@ -1,43 +1,39 @@
 package com.example.consumoapi
-
-
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import com.example.consumoapi.retrofit.ExchangeRateAPI
-import com.example.consumoapi.retrofit.ExchangeRateResponse
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import androidx.work.PeriodicWorkRequest
+import androidx.work.WorkManager
+import com.example.consumoapi.api.ExchangeRateApi
+import com.example.consumoapi.workmanager.SyncWorker
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
+    private val retrofit = Retrofit.Builder()
+        .baseUrl("https://v6.exchangerate-api.com/v6/e635fe44bc6d624af6a33ace/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+    private val exchangeRateApi = retrofit.create(ExchangeRateApi::class.java)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val retrofit = Retrofit.Builder()
-            .baseUrl("https://v6.exchangerate-api.com/v6/e635fe44bc6d624af6a33ace/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
+        val syncRequest = PeriodicWorkRequest.Builder(
+            SyncWorker::class.java,
+            1, TimeUnit.DAYS
+        ).build()
 
-        val exchangeRateAPI = retrofit.create(ExchangeRateAPI::class.java)
-        val call = exchangeRateAPI.getExchangeRate("USD")
-        call.enqueue(object : Callback<ExchangeRateResponse> {
-            override fun onResponse(
-                call: Call<ExchangeRateResponse>,
-                response: Response<ExchangeRateResponse>
-            ) {
-                val conversionRates = response.body()?.conversionRates
-                Log.d("ExchangeRate", conversionRates.toString())
-            }
+        WorkManager.getInstance(applicationContext).enqueue(syncRequest)
 
-            override fun onFailure(call: Call<ExchangeRateResponse>, t: Throwable) {
-                Log.e("ExchangeRate", t.message, t)
-            }
-        })
-
+        GlobalScope.launch(Dispatchers.IO) {
+            val exchangeRate = exchangeRateApi.getExchangeRates("USD")
+            Log.d("ExchangeRate", exchangeRate.toString())
+        }
     }
 }
